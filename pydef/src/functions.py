@@ -23,25 +23,3 @@ def ecuatie_gradul_2(a, b, c):
         x1 = (-b + math.sqrt(delta))/(2*a)
         x2 = (-b - math.sqrt(delta))/(2*a)  
         return(x1, x2)
-    
-def impartire(x, )
-    
-print(ecuatie_gradul_2(3,-1,-2))
-
-
-lista = []
-while True:
-    x = (input("Introdu un element: "))
-    if x == "0":
-        break
-    lista.append(int(x))
-    
-
-print(lista)
-x = 1
-for i in lista:
-    print("Cubul numarului", x, ": ", cub(i))
-    x +=1
-
-for z in range(len(lista)):
-    print (z+1)
