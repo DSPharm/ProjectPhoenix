@@ -1,5 +1,17 @@
 def cub(x):
     return x**3
 
-cubul = int(input("Cubul la ce numar doresti? "))
-print (cub(cubul))
+
+lista = []
+while True:
+    x = (input("Introdu un element: "))
+    if x == "0":
+        break
+    lista.append(int(x))
+    
+
+print(lista)
+x = 1
+for i in lista:
+    print("Cubul numarului", x, ": ", cub(i))
+    x +=1
