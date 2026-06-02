@@ -24,6 +24,8 @@ def ecuatie_gradul_2(a, b, c):
         x2 = (-b - math.sqrt(delta))/(2*a)  
         return(x1, x2)
     
+def impartire(x, )
+    
 print(ecuatie_gradul_2(3,-1,-2))
 
 
