@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
@@ -10,6 +11,12 @@ def home():
 def home():
     return{"mesaj": "Salut din CASA!"}
 
-@app.get("/Buna")
+@app.get("/Buna", response_class=HTMLResponse)
 def home():
-    return{"mesaj": "Buna iubire ;)!"}
+    return """
+        <html>
+            <body>
+            <h1>Buna Iubire!</h1>
+            </body>
+        </html>
+        """
