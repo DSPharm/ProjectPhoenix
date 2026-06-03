@@ -9,3 +9,7 @@ def home():
 @app.get("/casa")
 def home():
     return{"mesaj": "Salut din CASA!"}
+
+@app.get("/Buna")
+def home():
+    return{"mesaj": "Buna iubire ;)!"}
