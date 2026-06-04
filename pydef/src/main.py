@@ -215,3 +215,82 @@ def state():
             for d in team
         ]
     }
+from fastapi.responses import HTMLResponse
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevOffice AI</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #111;
+            color: #0f0;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .npc {
+            border: 1px solid #0f0;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        button {
+            padding: 10px;
+            background: #0f0;
+            color: #000;
+            border: none;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #000;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>💻 DevOffice AI Simulator</h1>
+
+    <button onclick="tick()">▶ Next Tick</button>
+
+    <h2>📊 World</h2>
+    <pre id="world"></pre>
+
+    <h2>👨‍💻 NPC Actions</h2>
+    <div id="npcs"></div>
+</div>
+
+<script>
+async function tick() {
+    const res = await fetch('/tick', {method: 'POST'});
+    const data = await res.json();
+
+    document.getElementById('world').innerText =
+        JSON.stringify(data, null, 2);
+
+    let html = "";
+    data.log.forEach(npc => {
+        html += `
+            <div class="npc">
+                <b>${npc.name}</b><br>
+                Action: ${npc.action}<br>
+                Message: ${npc.message}<br>
+                Stress: ${npc.stress}
+            </div>
+        `;
+    });
+
+    document.getElementById('npcs').innerHTML = html;
+}
+</script>
+
+</body>
+</html>
+"""
