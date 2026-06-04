@@ -219,6 +219,7 @@ def home():
     </style>
 </head>
 <body>
+<img src="https://i.imgur.com/4M7IWwP.png" width="300" />
 <div class="container">
 
 <h1>💻 DevOffice AI Simulator</h1>
