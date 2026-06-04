@@ -83,13 +83,20 @@ def call_ai(prompt):
     try:
         res = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "Return ONLY valid JSON. No markdown."},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.7
         )
 
         text = res.choices[0].message.content.strip()
 
-        match = re.search(r"\{.*\}", text, re.DOTALL)
+        # SAFE JSON extraction
+        import json
+        import re
+
+        match = re.search(r"\{[\s\S]*\}", text)
         if not match:
             raise ValueError("No JSON found")
 
