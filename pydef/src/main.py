@@ -112,14 +112,19 @@ def call_ai(prompt):
         res = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.8
+            temperature=0.7
         )
-        text = res.choices[0].message.content
-        return eval(text)  # MVP only (in prod use json.loads)
+
+        text = res.choices[0].message.content.strip()
+
+        import json
+        return json.loads(text)
+
     except Exception as e:
+        print("AI ERROR:", e, text)
         return {
             "action": "rest",
-            "message": "AI error fallback",
+            "message": "fallback",
             "quality": 1,
             "bug_risk": 1
         }
