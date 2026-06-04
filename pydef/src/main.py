@@ -194,7 +194,7 @@ class TickResponse(BaseModel):
     bugs: int
     log: list
 
-@app.post("/tick", response_model=TickResponse)
+@app.get("/tick")
 def tick():
     game_tick()
     return {
