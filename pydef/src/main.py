@@ -6,7 +6,12 @@ import os
 
 app = FastAPI(title="DevOffice AI Simulator")
 
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+
+if not api_key:
+    raise Exception("OPENAI_API_KEY is missing on server!")
+
+client = openai.OpenAI(api_key=api_key)
 
 # -----------------------------
 # GAME STATE
