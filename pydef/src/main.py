@@ -13,6 +13,35 @@ if not api_key:
 
 client = openai.OpenAI(api_key=api_key)
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+    <html>
+        <head>
+            <title>DevOffice AI</title>
+        </head>
+        <body>
+            <h1>💻 DevOffice AI Simulator</h1>
+            <p>Server is running</p>
+
+            <button onclick="tick()">Run Tick</button>
+
+            <pre id="output"></pre>
+
+            <script>
+                async function tick() {
+                    const res = await fetch('/tick', {method: 'POST'});
+                    const data = await res.json();
+                    document.getElementById('output').innerText =
+                        JSON.stringify(data, null, 2);
+                }
+            </script>
+        </body>
+    </html>
+    """
+
 # -----------------------------
 # GAME STATE
 # -----------------------------
