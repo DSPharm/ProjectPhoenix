@@ -165,22 +165,23 @@ def apply_action(dev: Programmer, decision):
 # GAME LOOP
 # -----------------------------
 
-def game_tick():
-    world["day"] += 1
-    logs = []
+@app.get("/tick")
+def tick():
+    try:
+        game_tick()
+        return {
+            "day": world["day"],
+            "progress": round(world["project_progress"], 2),
+            "bugs": world["bugs"],
+            "log": world["log"]
+        }
 
-    for dev in team:
-        prompt = build_prompt(dev)
-        decision = call_ai(prompt)
-        apply_action(dev, decision)
-
-        logs.append({
-            "name": dev.name,
-            "action": decision["action"],
-            "message": decision["message"],
-            "stress": dev.stress,
-            "bugs": world["bugs"]
-        })
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return {
+            "error": str(e)
+        }
 
     world["log"] = logs
 
