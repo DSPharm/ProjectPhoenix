@@ -1,46 +1,23 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import random
-import openai
 import os
+import json
+import re
+import openai
 
 app = FastAPI(title="DevOffice AI Simulator")
 
+# -----------------------------
+# OPENAI SETUP
+# -----------------------------
 api_key = os.getenv("OPENAI_API_KEY")
 
 if not api_key:
     raise Exception("OPENAI_API_KEY is missing on server!")
 
 client = openai.OpenAI(api_key=api_key)
-
-from fastapi.responses import HTMLResponse
-
-@app.get("/", response_class=HTMLResponse)
-def home():
-    return """
-    <html>
-        <head>
-            <title>DevOffice AI</title>
-        </head>
-        <body>
-            <h1>💻 DevOffice AI Simulator</h1>
-            <p>Server is running</p>
-
-            <button onclick="tick()">Run Tick</button>
-
-            <pre id="output"></pre>
-
-            <script>
-                async function tick() {
-                    const res = await fetch('/tick', {method: 'POST'});
-                    const data = await res.json();
-                    document.getElementById('output').innerText =
-                        JSON.stringify(data, null, 2);
-                }
-            </script>
-        </body>
-    </html>
-    """
 
 # -----------------------------
 # GAME STATE
@@ -66,7 +43,6 @@ world = {
     "day": 0,
     "project_progress": 0,
     "bugs": 0,
-    "money": 10000,
     "log": []
 }
 
@@ -76,7 +52,7 @@ world = {
 
 def build_prompt(dev: Programmer):
     return f"""
-You are an AI programmer in a 2006-style software company simulator.
+You are a programmer in a 2006-style office simulation game.
 
 Name: {dev.name}
 Skill: {dev.skill}/10
@@ -84,27 +60,23 @@ Personality: {dev.personality}
 Stress: {dev.stress}/100
 Energy: {dev.energy}/100
 
-Game context:
-- Project progress: {world['project_progress']}%
-- Total bugs: {world['bugs']}
-
 Choose ONE action:
-1. code
-2. debug
-3. talk
-4. rest
+- code
+- debug
+- talk
+- rest
 
-Return ONLY JSON:
+Return ONLY valid JSON:
 {{
-  "action": "...",
-  "message": "...",
+  "action": "code|debug|talk|rest",
+  "message": "short message",
   "quality": 1-10,
   "bug_risk": 1-10
 }}
 """
 
 # -----------------------------
-# CALL AI
+# AI CALL (SAFE)
 # -----------------------------
 
 def call_ai(prompt):
@@ -117,14 +89,17 @@ def call_ai(prompt):
 
         text = res.choices[0].message.content.strip()
 
-        import json
-        return json.loads(text)
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            raise ValueError("No JSON found")
+
+        return json.loads(match.group())
 
     except Exception as e:
-        print("AI ERROR:", e, text)
+        print("AI ERROR:", e)
         return {
             "action": "rest",
-            "message": "fallback",
+            "message": "fallback mode",
             "quality": 1,
             "bug_risk": 1
         }
@@ -134,14 +109,15 @@ def call_ai(prompt):
 # -----------------------------
 
 def apply_action(dev: Programmer, decision):
-    action = decision["action"]
-    quality = decision["quality"]
-    bug_risk = decision["bug_risk"]
+    action = decision.get("action", "rest")
+    quality = decision.get("quality", 1)
+    bug_risk = decision.get("bug_risk", 1)
 
     dev.last_action = action
 
     if action == "code":
         world["project_progress"] += quality * 0.5
+
         if bug_risk > 6:
             world["bugs"] += 1
             dev.bugs += 1
@@ -165,6 +141,27 @@ def apply_action(dev: Programmer, decision):
 # GAME LOOP
 # -----------------------------
 
+def game_tick():
+    world["day"] += 1
+    logs = []
+
+    for dev in team:
+        decision = call_ai(build_prompt(dev))
+        apply_action(dev, decision)
+
+        logs.append({
+            "name": dev.name,
+            "action": decision["action"],
+            "message": decision["message"],
+            "stress": dev.stress
+        })
+
+    world["log"] = logs
+
+# -----------------------------
+# API
+# -----------------------------
+
 @app.get("/tick")
 def tick():
     try:
@@ -175,35 +172,8 @@ def tick():
             "bugs": world["bugs"],
             "log": world["log"]
         }
-
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        return {
-            "error": str(e)
-        }
-
-    world["log"] = logs
-
-# -----------------------------
-# API
-# -----------------------------
-
-class TickResponse(BaseModel):
-    day: int
-    progress: float
-    bugs: int
-    log: list
-
-@app.get("/tick")
-def tick():
-    game_tick()
-    return {
-        "day": world["day"],
-        "progress": round(world["project_progress"], 2),
-        "bugs": world["bugs"],
-        "log": world["log"]
-    }
+        return {"error": str(e)}
 
 @app.get("/state")
 def state():
@@ -221,7 +191,11 @@ def state():
             for d in team
         ]
     }
-from fastapi.responses import HTMLResponse
+
+# -----------------------------
+# UI (GAME FRONTEND)
+# -----------------------------
+
 @app.get("/", response_class=HTMLResponse)
 def home():
     return """
@@ -230,52 +204,31 @@ def home():
 <head>
     <title>DevOffice AI</title>
     <style>
-        body {
-            font-family: Arial;
-            background: #111;
-            color: #0f0;
-        }
-
-        .container {
-            padding: 20px;
-        }
-
-        .npc {
-            border: 1px solid #0f0;
-            padding: 10px;
-            margin: 10px;
-        }
-
-        button {
-            padding: 10px;
-            background: #0f0;
-            color: #000;
-            border: none;
-            cursor: pointer;
-        }
-
-        pre {
-            background: #000;
-            padding: 10px;
-        }
+        body { font-family: Arial; background:#111; color:#0f0; }
+        .container { padding:20px; }
+        .npc { border:1px solid #0f0; padding:10px; margin:10px; }
+        button { padding:10px; background:#0f0; border:none; cursor:pointer; }
+        pre { background:#000; padding:10px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>💻 DevOffice AI Simulator</h1>
 
-    <button onclick="tick()">▶ Next Tick</button>
+<h1>💻 DevOffice AI Simulator</h1>
 
-    <h2>📊 World</h2>
-    <pre id="world"></pre>
+<button onclick="tick()">▶ Next Tick</button>
 
-    <h2>👨‍💻 NPC Actions</h2>
-    <div id="npcs"></div>
+<h2>📊 World</h2>
+<pre id="world"></pre>
+
+<h2>👨‍💻 NPCs</h2>
+<div id="npcs"></div>
+
 </div>
 
 <script>
 async function tick() {
-    const res = await fetch('/tick', {method: 'POST'});
+    const res = await fetch('/tick');
     const data = await res.json();
 
     document.getElementById('world').innerText =
@@ -284,13 +237,12 @@ async function tick() {
     let html = "";
     data.log.forEach(npc => {
         html += `
-            <div class="npc">
-                <b>${npc.name}</b><br>
-                Action: ${npc.action}<br>
-                Message: ${npc.message}<br>
-                Stress: ${npc.stress}
-            </div>
-        `;
+        <div class="npc">
+            <b>${npc.name}</b><br>
+            Action: ${npc.action}<br>
+            Message: ${npc.message}<br>
+            Stress: ${npc.stress}
+        </div>`;
     });
 
     document.getElementById('npcs').innerHTML = html;
